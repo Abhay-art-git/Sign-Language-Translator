@@ -1,6 +1,7 @@
 import cv2
+import numpy as np
 
-def preprocess(img):
-    img = cv2.resize(img, (64, 64))
-    img = img / 255.0
-    return img
+def preprocess(frame):
+    frame = cv2.resize(frame, (64, 64))
+    frame = frame / 255.0
+    return frame
