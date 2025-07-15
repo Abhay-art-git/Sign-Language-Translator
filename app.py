@@ -1,44 +1,39 @@
 import streamlit as st
-import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
+from PIL import Image
+import cv2
 import os
 import importlib.util
 
-# ✅ Load preprocess() from app/utils.py using importlib
+# Load preprocess() from app/utils.py
 utils_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app', 'utils.py'))
 spec = importlib.util.spec_from_file_location("utils", utils_path)
 utils = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(utils)
 preprocess = utils.preprocess
 
-# Load model
+# Load model and class labels
 model = load_model('model/sign_model.h5')
-
-# Get labels from dataset folders
-labels = sorted(os.listdir('dataset'))
+labels = sorted(os.listdir('dataset'))  # Uses folder names as class labels
 
 # Streamlit UI
-st.title("🤟 Real-Time Sign Language Translator")
+st.title("🤟 Sign Language Translator")
+st.write("Upload an image of a hand sign:")
 
-run = st.checkbox('Start Camera')
-FRAME_WINDOW = st.image([])
-camera = cv2.VideoCapture(0)
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-while run:
-    ret, frame = camera.read()
-    if not ret:
-        break
+if uploaded_file is not None:
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption='Uploaded Image', use_column_width=True)
 
-    roi = frame[100:300, 100:300]
-    img = preprocess(roi)
+    # Convert to OpenCV format
+    img_cv = np.array(image)
+    img_cv = cv2.cvtColor(img_cv, cv2.COLOR_RGB2BGR)
+
+    img = preprocess(img_cv)
 
     prediction = model.predict(np.expand_dims(img, axis=0))
     predicted_label = labels[np.argmax(prediction)]
 
-    cv2.rectangle(frame, (100, 100), (300, 300), (0, 255, 0), 2)
-    cv2.putText(frame, predicted_label, (100, 90), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 0), 3)
-
-    FRAME_WINDOW.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-
-camera.release()
+    st.success(f"Predicted Sign: **{predicted_label}**")
